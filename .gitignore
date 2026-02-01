@@ -5,3 +5,9 @@
 # idea
 .idea
 .idea/
+
+*.code-workspace
+
+data/
+
+.goctl/
