@@ -19,6 +19,7 @@
         - gencode：生成api、rpc，以及创建kafka语句，复制粘贴使用
         - mysql：生成model的sh工具
     - goctl: 该项目goctl的template，goctl生成自定义代码模版，template用法可参考go-zero文档，复制到家目录下.goctl即可
+- pkg: 该项目所有的公共库代码
 - doc : 该项目系列文档
 - modd.conf :  modd热加载配置文件
 

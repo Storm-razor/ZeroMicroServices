@@ -16,7 +16,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
-	"looklook/pkg/globalkey"
+	"github.com/wwwzy/ZeroMicroServices/pkg/globalkey"
 )
 
 var (
@@ -355,6 +355,9 @@ func (m *defaultUserModel) FindPageListByIdASC(ctx context.Context, builder squi
 	}
 }
 
+//---------------------------
+//@brief 传入事务并执行
+//---------------------------
 func (m *defaultUserModel) Trans(ctx context.Context, fn func(ctx context.Context, session sqlx.Session) error) error {
 
 	return m.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
