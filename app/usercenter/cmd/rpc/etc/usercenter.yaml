@@ -1,12 +1,7 @@
-## 本地测试运行版本
+## windows本地测试运行版本
 Name: usercenter.rpc
 ListenOn: 0.0.0.0:8080
 Mode: test
-
-Etcd:
-  Hosts:
-  - 127.0.0.1:2379
-  Key: usercenter.rpc
 
 DB:
   DataSource: root:wzy256411@tcp(127.0.0.1:3306)/looklook_usercenter?charset=utf8mb4&parseTime=true&loc=Local

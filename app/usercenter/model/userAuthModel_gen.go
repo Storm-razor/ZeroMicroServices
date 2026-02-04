@@ -13,6 +13,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 	"github.com/zeromicro/go-zero/core/stores/builder"
+	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
@@ -24,6 +25,10 @@ var (
 	userAuthRows                = strings.Join(userAuthFieldNames, ",")
 	userAuthRowsExpectAutoSet   = strings.Join(stringx.Remove(userAuthFieldNames, "`id`", "`create_time`", "`update_time`"), ",")
 	userAuthRowsWithPlaceHolder = strings.Join(stringx.Remove(userAuthFieldNames, "`id`", "`create_time`", "`update_time`"), "=?,") + "=?"
+
+	cacheUserAuthIdPrefix              = "cache:userAuth:id:"
+	cacheUserAuthAuthTypeAuthKeyPrefix = "cache:userAuth:authType:authKey:"
+	cacheUserAuthUserIdAuthTypePrefix  = "cache:userAuth:userId:authType:"
 )
 
 type (
@@ -48,7 +53,7 @@ type (
 	}
 
 	defaultUserAuthModel struct {
-		conn  sqlx.SqlConn
+		sqlc.CachedConn
 		table string
 	}
 
@@ -65,28 +70,35 @@ type (
 	}
 )
 
-func newUserAuthModel(conn sqlx.SqlConn) *defaultUserAuthModel {
+func newUserAuthModel(conn sqlx.SqlConn, c cache.CacheConf) *defaultUserAuthModel {
 	return &defaultUserAuthModel{
-		conn:  conn,
-		table: "`user_auth`",
+		CachedConn: sqlc.NewConn(conn, c),
+		table:      "`user_auth`",
 	}
 }
 
 func (m *defaultUserAuthModel) Insert(ctx context.Context, session sqlx.Session, data *UserAuth) (sql.Result, error) {
 	data.DeleteTime = time.Unix(0, 0)
 	data.DelState = globalkey.DelStateNo
-
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?)", m.table, userAuthRowsExpectAutoSet)
-	if session != nil {
-		return session.ExecCtx(ctx, query, data.DeleteTime, data.DelState, data.Version, data.UserId, data.AuthKey, data.AuthType)
-	}
-	return m.conn.ExecCtx(ctx, query, data.DeleteTime, data.DelState, data.Version, data.UserId, data.AuthKey, data.AuthType)
+	userAuthAuthTypeAuthKeyKey := fmt.Sprintf("%s%v:%v", cacheUserAuthAuthTypeAuthKeyPrefix, data.AuthType, data.AuthKey)
+	userAuthIdKey := fmt.Sprintf("%s%v", cacheUserAuthIdPrefix, data.Id)
+	userAuthUserIdAuthTypeKey := fmt.Sprintf("%s%v:%v", cacheUserAuthUserIdAuthTypePrefix, data.UserId, data.AuthType)
+	return m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?, ?, ?, ?)", m.table, userAuthRowsExpectAutoSet)
+		if session != nil {
+			return session.ExecCtx(ctx, query, data.DeleteTime, data.DelState, data.Version, data.UserId, data.AuthKey, data.AuthType)
+		}
+		return conn.ExecCtx(ctx, query, data.DeleteTime, data.DelState, data.Version, data.UserId, data.AuthKey, data.AuthType)
+	}, userAuthAuthTypeAuthKeyKey, userAuthIdKey, userAuthUserIdAuthTypeKey)
 }
 
 func (m *defaultUserAuthModel) FindOne(ctx context.Context, id int64) (*UserAuth, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ?  and del_state = ? limit 1", userAuthRows, m.table)
+	userAuthIdKey := fmt.Sprintf("%s%v", cacheUserAuthIdPrefix, id)
 	var resp UserAuth
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id, globalkey.DelStateNo)
+	err := m.QueryRowCtx(ctx, &resp, userAuthIdKey, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) error {
+		query := fmt.Sprintf("select %s from %s where `id` = ? and del_state = ? limit 1", userAuthRows, m.table)
+		return conn.QueryRowCtx(ctx, v, query, id, globalkey.DelStateNo)
+	})
 	switch err {
 	case nil:
 		return &resp, nil
@@ -98,9 +110,15 @@ func (m *defaultUserAuthModel) FindOne(ctx context.Context, id int64) (*UserAuth
 }
 
 func (m *defaultUserAuthModel) FindOneByAuthTypeAuthKey(ctx context.Context, authType string, authKey string) (*UserAuth, error) {
+	userAuthAuthTypeAuthKeyKey := fmt.Sprintf("%s%v:%v", cacheUserAuthAuthTypeAuthKeyPrefix, authType, authKey)
 	var resp UserAuth
-	query := fmt.Sprintf("select %s from %s where `auth_type` = ? and `auth_key` = ?  and del_state = ? limit 1", userAuthRows, m.table)
-	err := m.conn.QueryRowCtx(ctx, &resp, query, authType, authKey, globalkey.DelStateNo)
+	err := m.QueryRowIndexCtx(ctx, &resp, userAuthAuthTypeAuthKeyKey, m.formatPrimary, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) (i interface{}, e error) {
+		query := fmt.Sprintf("select %s from %s where `auth_type` = ? and `auth_key` = ? and del_state = ? limit 1", userAuthRows, m.table)
+		if err := conn.QueryRowCtx(ctx, &resp, query, authType, authKey, globalkey.DelStateNo); err != nil {
+			return nil, err
+		}
+		return resp.Id, nil
+	}, m.queryPrimary)
 	switch err {
 	case nil:
 		return &resp, nil
@@ -112,9 +130,15 @@ func (m *defaultUserAuthModel) FindOneByAuthTypeAuthKey(ctx context.Context, aut
 }
 
 func (m *defaultUserAuthModel) FindOneByUserIdAuthType(ctx context.Context, userId int64, authType string) (*UserAuth, error) {
+	userAuthUserIdAuthTypeKey := fmt.Sprintf("%s%v:%v", cacheUserAuthUserIdAuthTypePrefix, userId, authType)
 	var resp UserAuth
-	query := fmt.Sprintf("select %s from %s where `user_id` = ? and `auth_type` = ?  and del_state = ? limit 1", userAuthRows, m.table)
-	err := m.conn.QueryRowCtx(ctx, &resp, query, userId, authType, globalkey.DelStateNo)
+	err := m.QueryRowIndexCtx(ctx, &resp, userAuthUserIdAuthTypeKey, m.formatPrimary, func(ctx context.Context, conn sqlx.SqlConn, v interface{}) (i interface{}, e error) {
+		query := fmt.Sprintf("select %s from %s where `user_id` = ? and `auth_type` = ? and del_state = ? limit 1", userAuthRows, m.table)
+		if err := conn.QueryRowCtx(ctx, &resp, query, userId, authType, globalkey.DelStateNo); err != nil {
+			return nil, err
+		}
+		return resp.Id, nil
+	}, m.queryPrimary)
 	switch err {
 	case nil:
 		return &resp, nil
@@ -126,11 +150,20 @@ func (m *defaultUserAuthModel) FindOneByUserIdAuthType(ctx context.Context, user
 }
 
 func (m *defaultUserAuthModel) Update(ctx context.Context, session sqlx.Session, newData *UserAuth) (sql.Result, error) {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, userAuthRowsWithPlaceHolder)
-	if session != nil {
-		return session.ExecCtx(ctx, query, newData.DeleteTime, newData.DelState, newData.Version, newData.UserId, newData.AuthKey, newData.AuthType, newData.Id)
+	data, err := m.FindOne(ctx, newData.Id)
+	if err != nil {
+		return nil, err
 	}
-	return m.conn.ExecCtx(ctx, query, newData.DeleteTime, newData.DelState, newData.Version, newData.UserId, newData.AuthKey, newData.AuthType, newData.Id)
+	userAuthAuthTypeAuthKeyKey := fmt.Sprintf("%s%v:%v", cacheUserAuthAuthTypeAuthKeyPrefix, data.AuthType, data.AuthKey)
+	userAuthIdKey := fmt.Sprintf("%s%v", cacheUserAuthIdPrefix, data.Id)
+	userAuthUserIdAuthTypeKey := fmt.Sprintf("%s%v:%v", cacheUserAuthUserIdAuthTypePrefix, data.UserId, data.AuthType)
+	return m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, userAuthRowsWithPlaceHolder)
+		if session != nil {
+			return session.ExecCtx(ctx, query, newData.DeleteTime, newData.DelState, newData.Version, newData.UserId, newData.AuthKey, newData.AuthType, newData.Id)
+		}
+		return conn.ExecCtx(ctx, query, newData.DeleteTime, newData.DelState, newData.Version, newData.UserId, newData.AuthKey, newData.AuthType, newData.Id)
+	}, userAuthAuthTypeAuthKeyKey, userAuthIdKey, userAuthUserIdAuthTypeKey)
 }
 
 func (m *defaultUserAuthModel) UpdateWithVersion(ctx context.Context, session sqlx.Session, newData *UserAuth) error {
@@ -141,13 +174,20 @@ func (m *defaultUserAuthModel) UpdateWithVersion(ctx context.Context, session sq
 	var sqlResult sql.Result
 	var err error
 
-	query := fmt.Sprintf("update %s set %s where `id` = ? and version = ? ", m.table, userAuthRowsWithPlaceHolder)
-	if session != nil {
-		sqlResult, err = session.ExecCtx(ctx, query, newData.DeleteTime, newData.DelState, newData.Version, newData.UserId, newData.AuthKey, newData.AuthType, newData.Id, oldVersion)
-	} else {
-		sqlResult, err = m.conn.ExecCtx(ctx, query, newData.DeleteTime, newData.DelState, newData.Version, newData.UserId, newData.AuthKey, newData.AuthType, newData.Id, oldVersion)
+	data, err := m.FindOne(ctx, newData.Id)
+	if err != nil {
+		return err
 	}
-
+	userAuthAuthTypeAuthKeyKey := fmt.Sprintf("%s%v:%v", cacheUserAuthAuthTypeAuthKeyPrefix, data.AuthType, data.AuthKey)
+	userAuthIdKey := fmt.Sprintf("%s%v", cacheUserAuthIdPrefix, data.Id)
+	userAuthUserIdAuthTypeKey := fmt.Sprintf("%s%v:%v", cacheUserAuthUserIdAuthTypePrefix, data.UserId, data.AuthType)
+	sqlResult, err = m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("update %s set %s where `id` = ? and version = ? ", m.table, userAuthRowsWithPlaceHolder)
+		if session != nil {
+			return session.ExecCtx(ctx, query, newData.DeleteTime, newData.DelState, newData.Version, newData.UserId, newData.AuthKey, newData.AuthType, newData.Id, oldVersion)
+		}
+		return conn.ExecCtx(ctx, query, newData.DeleteTime, newData.DelState, newData.Version, newData.UserId, newData.AuthKey, newData.AuthType, newData.Id, oldVersion)
+	}, userAuthAuthTypeAuthKeyKey, userAuthIdKey, userAuthUserIdAuthTypeKey)
 	if err != nil {
 		return err
 	}
@@ -185,9 +225,7 @@ func (m *defaultUserAuthModel) FindSum(ctx context.Context, builder squirrel.Sel
 	}
 
 	var resp float64
-
-	err = m.conn.QueryRowCtx(ctx, &resp, query, values...)
-
+	err = m.QueryRowNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
@@ -210,9 +248,7 @@ func (m *defaultUserAuthModel) FindCount(ctx context.Context, builder squirrel.S
 	}
 
 	var resp int64
-
-	err = m.conn.QueryRowCtx(ctx, &resp, query, values...)
-
+	err = m.QueryRowNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
@@ -237,9 +273,7 @@ func (m *defaultUserAuthModel) FindAll(ctx context.Context, builder squirrel.Sel
 	}
 
 	var resp []*UserAuth
-
-	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
-
+	err = m.QueryRowsNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
@@ -269,9 +303,7 @@ func (m *defaultUserAuthModel) FindPageListByPage(ctx context.Context, builder s
 	}
 
 	var resp []*UserAuth
-
-	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
-
+	err = m.QueryRowsNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
@@ -306,9 +338,7 @@ func (m *defaultUserAuthModel) FindPageListByPageWithTotal(ctx context.Context, 
 	}
 
 	var resp []*UserAuth
-
-	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
-
+	err = m.QueryRowsNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, total, nil
@@ -331,9 +361,7 @@ func (m *defaultUserAuthModel) FindPageListByIdDESC(ctx context.Context, builder
 	}
 
 	var resp []*UserAuth
-
-	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
-
+	err = m.QueryRowsNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
@@ -356,9 +384,7 @@ func (m *defaultUserAuthModel) FindPageListByIdASC(ctx context.Context, builder 
 	}
 
 	var resp []*UserAuth
-
-	err = m.conn.QueryRowsCtx(ctx, &resp, query, values...)
-
+	err = m.QueryRowsNoCacheCtx(ctx, &resp, query, values...)
 	switch err {
 	case nil:
 		return resp, nil
@@ -369,7 +395,7 @@ func (m *defaultUserAuthModel) FindPageListByIdASC(ctx context.Context, builder 
 
 func (m *defaultUserAuthModel) Trans(ctx context.Context, fn func(ctx context.Context, session sqlx.Session) error) error {
 
-	return m.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+	return m.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		return fn(ctx, session)
 	})
 
@@ -379,13 +405,29 @@ func (m *defaultUserAuthModel) SelectBuilder() squirrel.SelectBuilder {
 	return squirrel.Select().From(m.table)
 }
 func (m *defaultUserAuthModel) Delete(ctx context.Context, session sqlx.Session, id int64) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	if session != nil {
-		_, err := session.ExecCtx(ctx, query, id)
+	data, err := m.FindOne(ctx, id)
+	if err != nil {
 		return err
 	}
-	_, err := m.conn.ExecCtx(ctx, query, id)
+
+	userAuthAuthTypeAuthKeyKey := fmt.Sprintf("%s%v:%v", cacheUserAuthAuthTypeAuthKeyPrefix, data.AuthType, data.AuthKey)
+	userAuthIdKey := fmt.Sprintf("%s%v", cacheUserAuthIdPrefix, id)
+	userAuthUserIdAuthTypeKey := fmt.Sprintf("%s%v:%v", cacheUserAuthUserIdAuthTypePrefix, data.UserId, data.AuthType)
+	_, err = m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
+		query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
+		if session != nil {
+			return session.ExecCtx(ctx, query, id)
+		}
+		return conn.ExecCtx(ctx, query, id)
+	}, userAuthAuthTypeAuthKeyKey, userAuthIdKey, userAuthUserIdAuthTypeKey)
 	return err
+}
+func (m *defaultUserAuthModel) formatPrimary(primary interface{}) string {
+	return fmt.Sprintf("%s%v", cacheUserAuthIdPrefix, primary)
+}
+func (m *defaultUserAuthModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary interface{}) error {
+	query := fmt.Sprintf("select %s from %s where `id` = ? and del_state = ? limit 1", userAuthRows, m.table)
+	return conn.QueryRowCtx(ctx, v, query, primary, globalkey.DelStateNo)
 }
 
 func (m *defaultUserAuthModel) tableName() string {

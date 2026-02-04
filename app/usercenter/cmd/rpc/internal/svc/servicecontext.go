@@ -21,8 +21,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	return &ServiceContext{
 		Config:        c,
-		UserModel:     model.NewUserModel(sqlConn),
-		UserAuthModel: model.NewUserAuthModel(sqlConn),
+		UserModel:     model.NewUserModel(sqlConn, c.Cache),
+		UserAuthModel: model.NewUserAuthModel(sqlConn, c.Cache),
 		RedisClient: redis.New(c.Redis.Host, func(r *redis.Redis) {
 			r.Type = c.Redis.Type
 			r.Pass = c.Redis.Pass

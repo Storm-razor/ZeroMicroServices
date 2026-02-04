@@ -46,6 +46,7 @@ func (l *RegisterLogic) Register(in *pb.RegisterReq) (*pb.RegisterResp, error) {
 	if err := l.svcCtx.UserModel.Trans(l.ctx, func(ctx context.Context, session sqlx.Session) error {
 		user := new(model.User)
 		user.Mobile = in.Mobile
+		user.Nickname = in.Nickname
 		if len(in.Nickname) == 0 {
 			user.Nickname = tool.Krand(8, tool.KC_RAND_KIND_ALL)
 		}
