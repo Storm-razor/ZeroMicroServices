@@ -1,3 +1,20 @@
-Name: usercenter
+# 本地测试配置
+Name: usercenter-api
 Host: 0.0.0.0
-Port: 8888
+Port: 10080
+Mode: test
+
+#WxMiniConf
+WxMiniConf:
+  AppId: wx2add729fadddddd
+  Secret: 20365395b3de9b2a9351ddddddd
+
+JwtAuth:
+  AccessSecret: "uKq9s8vM3x6zR2pL5nB8wE1yA4dG7jH0"
+  AccessExpire: 31536000
+
+#rpc service
+UsercenterRpcConf:
+  Endpoints:
+    - 127.0.0.1:8080
+  NonBlock: true

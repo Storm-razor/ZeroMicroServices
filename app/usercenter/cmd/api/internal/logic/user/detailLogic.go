@@ -6,8 +6,11 @@ package user
 import (
 	"context"
 
+	"github.com/jinzhu/copier"
 	"github.com/wwwzy/ZeroMicroServices/app/usercenter/cmd/api/internal/svc"
 	"github.com/wwwzy/ZeroMicroServices/app/usercenter/cmd/api/internal/types"
+	"github.com/wwwzy/ZeroMicroServices/app/usercenter/cmd/rpc/usercenter"
+	"github.com/wwwzy/ZeroMicroServices/pkg/ctxdata"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -29,6 +32,17 @@ func NewDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *DetailLogi
 
 func (l *DetailLogic) Detail(req *types.UserInfoReq) (resp *types.UserInfoResp, err error) {
 	// todo: add your logic here and delete this line
+	userId := ctxdata.GetUidFromCtx(l.ctx)
+	userInfoResp, err := l.svcCtx.UserCenterRpc.GetUserInfo(l.ctx, &usercenter.GetUserInfoReq{
+		Id: userId,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	var userInfo types.User
+	_ = copier.Copy(&userInfo, userInfoResp.User)
+	return &types.UserInfoResp{
+		UserInfo: userInfo,
+	}, nil
 }

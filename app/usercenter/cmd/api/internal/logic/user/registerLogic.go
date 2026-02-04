@@ -6,8 +6,13 @@ package user
 import (
 	"context"
 
+	"github.com/jinzhu/copier"
+	"github.com/pkg/errors"
+
 	"github.com/wwwzy/ZeroMicroServices/app/usercenter/cmd/api/internal/svc"
 	"github.com/wwwzy/ZeroMicroServices/app/usercenter/cmd/api/internal/types"
+	"github.com/wwwzy/ZeroMicroServices/app/usercenter/cmd/rpc/usercenter"
+	"github.com/wwwzy/ZeroMicroServices/app/usercenter/model"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,8 +32,19 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 	}
 }
 
-func (l *RegisterLogic) Register(req *types.RegisterReq) (resp *types.RegisterResp, err error) {
-	// todo: add your logic here and delete this line
+func (l *RegisterLogic) Register(req *types.RegisterReq) (*types.RegisterResp, error) {
+	registerResp, err := l.svcCtx.UserCenterRpc.Register(l.ctx, &usercenter.RegisterReq{
+		Mobile:   req.Mobile,
+		Password: req.Password,
+		AuthKey:  req.Mobile,
+		AuthType: model.UserAuthTypeSystem,
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "req: %+v", req)
+	}
 
-	return
+	var resp types.RegisterResp
+	_ = copier.Copy(&resp, registerResp)
+
+	return &resp, nil
 }
