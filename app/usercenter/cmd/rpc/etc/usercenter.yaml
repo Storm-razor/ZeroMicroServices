@@ -19,3 +19,7 @@ Redis:
   Type: node
   Pass: ""
   Key: usercenter-rpc
+
+Log:
+  ServiceName: usercenter-rpc
+  Level: error

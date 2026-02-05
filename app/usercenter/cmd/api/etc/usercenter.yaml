@@ -18,3 +18,7 @@ UsercenterRpcConf:
   Endpoints:
     - 127.0.0.1:8080
   NonBlock: true
+
+Log:
+  ServiceName: usercenter-api
+  Level: error
