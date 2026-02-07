@@ -1,0 +1,69 @@
+syntax = "v1"
+
+info (
+	title:   "旅游服务"
+	desc:    "旅游服务"
+	author:  "wwwzy"
+	email:   "wwfzjm2013@163.com"
+	version: "v1"
+)
+
+import (
+	"homestay/homestay.api"
+	"homestayBusiness/homestayBusiness.api"
+	"homestayComment/homestayComment.api"
+)
+
+//民宿相关服务
+@server (
+	prefix: travel/v1
+	group:  homestay
+)
+service travel {
+	@doc "民宿列表"
+	@handler homestayList
+	post /homestay/homestayList (HomestayListReq) returns (HomestayListResp)
+
+	@doc "查找房东所有房源"
+	@handler businessList
+	post /homestay/businessList (BusinessListReq) returns (BusinessListResp)
+
+	@doc "猜你喜欢民宿列表"
+	@handler guessList
+	post /homestay/guessList (GuessListReq) returns (GuessListResp)
+
+	@doc "民宿详细信息"
+	@handler homestayDetail
+	post /homestay/homestayDetail (HomestayDetailReq) returns (HomestayDetailResp)
+}
+
+//店铺服务
+@server (
+	prefix: travel/v1
+	group:  homestayBussiness
+)
+service travel {
+	@doc "推荐房主"
+	@handler goodBoss
+	post /homestayBussiness/goodBoss (GoodBossReq) returns (GoodBossResp)
+
+	@doc "房主列表"
+	@handler homestayBussinessList
+	post /homestayBussiness/homestayBussinessList (HomestayBussinessListReq) returns (HomestayBussinessListResp)
+
+	@doc "房主信息"
+	@handler homestayBussinessDetail
+	post /homestayBussiness/homestayBussinessDetail (HomestayBussinessDetailReq) returns (HomestayBussinessDetailResp)
+}
+
+//民宿评论服务
+@server (
+	prefix: travel/v1
+	group:  homestayComment
+)
+service travel {
+	@doc "民宿评论列表"
+	@handler commentList
+	post /homestayComment/commentList (CommentListReq) returns (CommentListResp)
+}
+
