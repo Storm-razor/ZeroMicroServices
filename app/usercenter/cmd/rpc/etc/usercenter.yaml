@@ -18,7 +18,7 @@ Redis:
   Host: 127.0.0.1:6379
   Type: node
   Pass: ""
-  Key: usercenter-rpc
+  Key: order-rpc
 
 Log:
   ServiceName: usercenter-rpc
