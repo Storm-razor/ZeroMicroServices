@@ -31,7 +31,6 @@ func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic 
 }
 
 func (l *LoginLogic) Login(in *pb.LoginReq) (*pb.LoginResp, error) {
-	// todo: add your logic here and delete this line
 	var userId int64
 	var err error
 

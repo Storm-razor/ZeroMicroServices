@@ -26,3 +26,7 @@
 # ./kafka-console-consumer.sh  --bootstrap-server kafka:9092  --topic looklook-log   --from-beginning
 # 命令生产
 # ./kafka-console-producer.sh --bootstrap-server kafka:9092 --topic second
+
+
+# 生成sql代码
+# goctl model mysql ddl -src deploy/sql/looklook_order.sql -dir app/order/model -c --home .goctl --style goZero

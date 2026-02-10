@@ -1,0 +1,20 @@
+## windows本地测试运行版本
+Name: payment.rpc
+ListenOn: 0.0.0.0:8083
+Mode: test
+
+Log:
+  ServiceName: payment-rpc
+  Level: error
+
+Cache:
+  - Host: 127.0.0.1:6379
+    Pass: ""
+
+DB:
+  DataSource: root:wzy256411@tcp(127.0.0.1:3306)/looklook_payment?charset=utf8mb4&parseTime=true&loc=Local
+
+KqPaymentUpdatePayStatusConf:
+  Brokers:
+    - 127.0.0.1:9092
+  Topic: payment-update-paystatus-topic
