@@ -1,0 +1,34 @@
+## windows本地测试运行版本
+Name: order-mq
+Mode: test
+
+Log:
+  ServiceName: order-mq
+  Level: error
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+  Pass: ""
+
+#rpc
+OrderRpcConf:
+  Endpoints:
+    - 127.0.0.1:8082
+  NonBlock: true
+
+UsercenterRpcConf:
+  Endpoints:
+    - 127.0.0.1:8080
+  NonBlock: true
+
+#kq 
+PaymentUpdateStatusConf:
+  Name: PaymentUpdateStatus
+  Brokers:
+    - 127.0.0.1:9092
+  Group: payment-update-paystatus-group
+  Topic: payment-update-paystatus-topic
+  Offset: first
+  Consumers: 1
+  Processors: 1

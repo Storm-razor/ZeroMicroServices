@@ -19,7 +19,7 @@ Redis:
   Key: order-rpc
 
 DB:
-  DataSource: root:wzy256411@tcp(127.0.0.1:3306)/looklook_usercenter?charset=utf8mb4&parseTime=true&loc=Local
+  DataSource: root:wzy256411@tcp(127.0.0.1:3306)/looklook_order?charset=utf8mb4&parseTime=true&loc=Local
 
 #rpc
 TravelRpcConf:
