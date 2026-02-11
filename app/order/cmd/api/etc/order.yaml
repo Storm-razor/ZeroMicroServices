@@ -1,3 +1,28 @@
-Name: order
+# 本地测试配置
+Name: order-api
 Host: 0.0.0.0
-Port: 8888
+Port: 10082
+Mode: test
+
+Log:
+  ServiceName: order-api
+  Level: error
+
+JwtAuth:
+  AccessSecret: "uKq9s8vM3x6zR2pL5nB8wE1yA4dG7jH0"
+
+#rpc
+OrderRpcConf:
+  Endpoints:
+    - 127.0.0.1:8082
+  NonBlock: true
+
+PaymentRpcConf:
+  Endpoints:
+    - 127.0.0.1:8083
+  NonBlock: true
+
+TravelRpcConf:
+  Endpoints:
+    - 127.0.0.1:8081
+  NonBlock: true
