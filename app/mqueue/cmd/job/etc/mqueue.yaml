@@ -1,0 +1,27 @@
+Name: mqueue-job
+Mode: test
+
+Log:
+  ServiceName: mqueue-job
+  Level: error
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+  Pass: ""
+
+#WxMiniConf
+WxMiniConf:
+  AppId: wx2add729fadddddd
+  Secret: 20365395b3de9b2a9351ddddddd
+
+#rpc service.
+OrderRpcConf:
+  Endpoints:
+    - 127.0.0.1:8082
+  NonBlock: true
+
+UsercenterRpcConf:
+  Endpoints:
+    - 127.0.0.1:8080
+  NonBlock: true
