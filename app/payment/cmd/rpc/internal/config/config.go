@@ -21,9 +21,3 @@ type KqConfig struct {
 	Brokers []string
 	Topic   string
 }
-
-// 微信小程序配置
-type KqServerConfig struct {
-	Address string `json:"AppId"`  //微信appId
-	Secret  string `json:"Secret"` //微信secret
-}

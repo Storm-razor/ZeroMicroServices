@@ -1,0 +1,35 @@
+syntax = "v1"
+
+info (
+	title:   "支付服务"
+	desc:    "支付服务"
+	author:  "wwwzy"
+	email:   "wwfzjm2013@163.com"
+	version: "v1"
+)
+
+import (
+	"thirdPayment/thirdPayment.api"
+)
+
+@server (
+	prefix: payment/v1
+	group:  thirdPayment
+)
+service payment {
+	@doc "第三方支付:微信支付回调"
+	@handler thirdPaymentWxPayCallback
+	post /thirdPayment/thirdPaymentWxPayCallback (ThirdPaymentWxPayCallbackReq) returns (ThirdPaymentWxPayCallbackResp)
+}
+
+@server (
+	prefix: payment/v1
+	group:  thirdPayment
+	jwt:    JwtAuth
+)
+service payment {
+	@doc "第三方支付:微信支付"
+	@handler thirdPaymentwxPay
+	post /thirdPayment/thirdPaymentWxPay (ThirdPaymentWxPayReq) returns (ThirdPaymentWxPayResp)
+}
+

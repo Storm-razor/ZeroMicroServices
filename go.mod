@@ -12,6 +12,7 @@ require (
 	github.com/silenceper/wechat/v2 v2.1.11
 	github.com/sony/sonyflake v1.3.0
 	github.com/stretchr/testify v1.11.1
+	github.com/wechatpay-apiv3/wechatpay-go v0.2.21
 	github.com/zeromicro/go-queue v1.2.2
 	github.com/zeromicro/go-zero v1.9.4
 	google.golang.org/grpc v1.78.0
