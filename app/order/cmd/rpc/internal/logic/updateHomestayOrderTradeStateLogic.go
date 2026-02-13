@@ -2,8 +2,11 @@ package logic
 
 import (
 	"context"
+	"encoding/json"
 
+	"github.com/hibiken/asynq"
 	"github.com/pkg/errors"
+	"github.com/wwwzy/ZeroMicroServices/app/mqueue/cmd/job/jobtype"
 	"github.com/wwwzy/ZeroMicroServices/app/order/cmd/rpc/internal/svc"
 	"github.com/wwwzy/ZeroMicroServices/app/order/cmd/rpc/pb"
 	"github.com/wwwzy/ZeroMicroServices/app/order/model"
@@ -53,7 +56,18 @@ func (l *UpdateHomestayOrderTradeStateLogic) UpdateHomestayOrderTradeState(in *p
 	}
 
 	// 在队列中设置用户提示
-	// todo...
+	if in.TradeState == model.HomestayOrderTradeStateWaitUse {
+		payload, err := json.Marshal(jobtype.PaySuccessNotifyUserPayload{Order: homestayOrder})
+		if err != nil {
+			logx.WithContext(l.ctx).Errorf("pay success notify user task json Marshal fail, err :%+v , sn : %s", err, homestayOrder.Sn)
+		} else {
+			_, err = l.svcCtx.AsynqClient.Enqueue(
+				asynq.NewTask(jobtype.MsgPaySuccessNotifyUser, payload))
+			if err != nil {
+				logx.WithContext(l.ctx).Errorf("pay success notify user  insert queue fail err :%+v , sn : %s", err, homestayOrder.Sn)
+			}
+		}
+	}
 
 	return &pb.UpdateHomestayOrderTradeStateResp{
 		Id:              homestayOrder.Id,

@@ -2,10 +2,13 @@ package logic
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
+	"github.com/hibiken/asynq"
 	"github.com/pkg/errors"
+	"github.com/wwwzy/ZeroMicroServices/app/mqueue/cmd/job/jobtype"
 	"github.com/wwwzy/ZeroMicroServices/app/order/cmd/rpc/internal/svc"
 	"github.com/wwwzy/ZeroMicroServices/app/order/cmd/rpc/pb"
 	"github.com/wwwzy/ZeroMicroServices/app/order/model"
@@ -94,7 +97,15 @@ func (l *CreateHomestayOrderLogic) CreateHomestayOrder(in *pb.CreateHomestayOrde
 	}
 
 	//设置订单定时关闭
-	//todo...
+	payload, err := json.Marshal(jobtype.DeferCloseHomestayOrderPayload{Sn: order.Sn})
+	if err != nil {
+		logx.WithContext(l.ctx).Errorf("create defer close order task json Marshal fail err :%+v , sn : %s", err, order.Sn)
+	} else {
+		_, err := l.svcCtx.AsynqClient.Enqueue(asynq.NewTask(jobtype.DeferCloseHomestayOrder, payload), asynq.ProcessIn(CloseOrderTimeMinutes*time.Minute))
+		if err != nil {
+			logx.WithContext(l.ctx).Errorf("create defer close order task insert queue fail err :%+v , sn : %s", err, order.Sn)
+		}
+	}
 
 	return &pb.CreateHomestayOrderResp{
 		Sn: order.Sn,
