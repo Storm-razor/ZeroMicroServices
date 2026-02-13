@@ -22,24 +22,16 @@ func ThirdPaymentWxPayCallbackHandler(svcCtx *svc.ServiceContext) http.HandlerFu
 		if err != nil {
 			logx.WithContext(r.Context()).Errorf("【API-ERR】 ThirdPaymentWxPayCallbackHandler : %+v ", err)
 			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			w.WriteHeader(http.StatusOK)
+			// 增加下面这两行，确保错误时直接结束，并把 "FAIL" 传给微信
+			if resp != nil {
+				fmt.Fprint(w, resp.ReturnCode)
+			}
+			return
 		}
 
-		logx.Infof("ReturnCode : %s ", resp.ReturnCode)
-		fmt.Fprint(w.(http.ResponseWriter), resp.ReturnCode)
-		// var req types.ThirdPaymentWxPayCallbackReq
-		// if err := httpx.Parse(r, &req); err != nil {
-		// 	httpx.ErrorCtx(r.Context(), w, err)
-		// 	return
-		// }
-
-		// l := thirdPayment.NewThirdPaymentWxPayCallbackLogic(r.Context(), svcCtx)
-		// resp, err := l.ThirdPaymentWxPayCallback(&req)
-		// if err != nil {
-		// 	httpx.ErrorCtx(r.Context(), w, err)
-		// } else {
-		// 	httpx.OkJsonCtx(r.Context(), w, resp)
-		// }
+		w.WriteHeader(http.StatusOK)
+		if resp != nil {
+			fmt.Fprint(w, resp.ReturnCode)
+		}
 	}
 }

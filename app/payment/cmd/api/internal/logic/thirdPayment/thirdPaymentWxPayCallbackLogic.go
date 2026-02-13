@@ -42,7 +42,7 @@ func NewThirdPaymentWxPayCallbackLogic(ctx context.Context, svcCtx *svc.ServiceC
 // ---------------------------
 // @brief 微信支付回调必须读取原始http包体,所以需要自定义处理逻辑
 // ---------------------------
-func (l *ThirdPaymentWxPayCallbackLogic) ThirdPaymentWxPayCallback(rw http.ResponseWriter, req *http.Request) (*types.ThirdPaymentWxPayCallbackResp, error) {
+func (l *ThirdPaymentWxPayCallbackLogic) ThirdPaymentWxPayCallback(_ http.ResponseWriter, req *http.Request) (*types.ThirdPaymentWxPayCallbackResp, error) {
 
 	_, err := svc.NewWxPayClientV3(l.svcCtx.Config)
 	if err != nil {
@@ -66,7 +66,7 @@ func (l *ThirdPaymentWxPayCallbackLogic) ThirdPaymentWxPayCallback(rw http.Respo
 
 	return &types.ThirdPaymentWxPayCallbackResp{
 		ReturnCode: returnCode,
-	}, nil
+	}, err
 
 }
 
