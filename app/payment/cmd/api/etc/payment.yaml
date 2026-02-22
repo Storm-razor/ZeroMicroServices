@@ -11,6 +11,12 @@ Log:
   ServiceName: payment-api
   Level: error
 
+Telemetry:
+  Name: payment-api
+  Endpoint: http://127.0.0.1:14268/api/traces
+  Sampler: 1.0
+  Batcher: jaeger
+
 #WxMiniConf
 WxMiniConf:
   AppId: wx2add729fadddddd

@@ -6,6 +6,12 @@ Log:
   ServiceName: mqueue-scheduler
   Level: error
 
+Telemetry:
+  Name: mqueue-scheduler
+  Endpoint: http://127.0.0.1:14268/api/traces
+  Sampler: 1.0
+  Batcher: jaeger
+
 
 Redis:
   Host: 127.0.0.1:6379

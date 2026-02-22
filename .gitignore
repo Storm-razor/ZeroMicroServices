@@ -13,3 +13,5 @@ data/
 .goctl/
 
 *_test.go
+
+test

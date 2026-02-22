@@ -7,6 +7,12 @@ Log:
   ServiceName: payment-rpc
   Level: error
 
+Telemetry:
+  Name: payment-rpc
+  Endpoint: http://127.0.0.1:14268/api/traces
+  Sampler: 1.0
+  Batcher: jaeger
+
 Cache:
   - Host: 127.0.0.1:6379
     Pass: ""

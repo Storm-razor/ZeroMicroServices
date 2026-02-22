@@ -8,6 +8,12 @@ Log:
   ServiceName: travel-api
   Level: error
 
+Telemetry:
+  Name: travel-api
+  Endpoint: http://127.0.0.1:14268/api/traces
+  Sampler: 1.0
+  Batcher: jaeger
+
 DB:
   DataSource: root:wzy256411@tcp(127.0.0.1:3306)/looklook_travel?charset=utf8mb4&parseTime=true&loc=Local
 
