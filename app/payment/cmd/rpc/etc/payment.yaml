@@ -16,5 +16,5 @@ DB:
 
 KqPaymentUpdatePayStatusConf:
   Brokers:
-    - 127.0.0.1:9092
+    - 127.0.0.1:9094
   Topic: payment-update-paystatus-topic
